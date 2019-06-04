@@ -1,1 +1,1 @@
-# CSC365ProjectMAN
+# CSC365ProjectNAM
