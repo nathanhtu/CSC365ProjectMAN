@@ -7,7 +7,7 @@ public class DBConnector {
 	private final String hostname = "dbc:mysql://csc365.toshikuboi.net";
 	private final String username = "sec05group05";
 	private final String password = "group05@sec05";
-	
+
 	public DBConnector() {
 		conn = null;
 		try {
@@ -21,16 +21,20 @@ public class DBConnector {
 					conn.close();
 					System.out.println ("Database connection terminated");
 				} catch (Exception e) {
-				
+
 				}
 			}
 		}
 	}
-	
+
 	public void close() {
-		conn.close();
+		try {
+			conn.close();
+		} catch (Exception e) {
+			
+		}
 	}
-	
+
 	public Connection getConnection() {
 		return this.conn;
 	}
