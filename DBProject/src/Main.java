@@ -1,4 +1,5 @@
 import util.*;
+import java.util.Scanner;
 
 public class Main {
 
@@ -10,30 +11,28 @@ public class Main {
 
 		int authority, status;
 		Scanner scan = new Scanner(System.in);
-		
-		do{
-			System.out.println("Are you a (1)Student, (2)Librarian, (3)Manager?");
-			while (!scan.hasNextInt()){
-				System.out.println("Invalid entry. Please try again.");
-				scan.next();
-			} 
-			authority = scan.nextLine();
-		} while (authority < 1 || authority > 3);
-		
-		if (authority == 1){
-			continue;
-		}
-		
-		if (authority == 2){
-			continue;
+		while (true) {
+			do{
+				System.out.print("Are you a (1) Student, (2) Librarian, (3) Manager?: ");
+				while (!scan.hasNextInt()){
+					System.out.println("Invalid entry. Please try again.");
+					scan.next();
+				}
+				authority = scan.nextInt();
+			} while (authority < 1 || authority > 3);
+
+			if (authority == 1){
+				StudentMenu.run();
+			}
+
+			if (authority == 2){
+			}
+
+			if (authority == 3){
+			}
 		}
 
-		if (authority == 3){
-			continue;
-		}
 
-		
-		
 	}
 
 }
