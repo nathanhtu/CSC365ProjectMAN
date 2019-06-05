@@ -5,8 +5,26 @@ import java.util.Scanner;
 public class StudentMenu {
 
     public static void run() {
-        int operation;
+        int operation, ID;
         Scanner scan = new Scanner(System.in);
+        
+        private ResultSet resultSet = null;
+        private PreparedStatement prepStatement = null;
+        
+        //scan for first and last name
+        System.out.print("Enter your student ID: ");
+        ID = scan.nextInt();
+
+        //not yet valid without the connect object
+        prepStatement = connect.prepareStatement("select status, numBooks from Students where studentID = ?");
+        prepStatement.setInt(1, ID);
+        
+        //execute Query
+        resultSet = prepStatement.executeQuery();
+        //take the information out of result set and add it to an object or variables
+        //probably need to make this a loop in case the student ID doesnt exist or the
+        //query returns an empty table
+        
         while (true) {
             showStudentOptions();
             do{
@@ -52,4 +70,5 @@ public class StudentMenu {
         System.out.println("(6) Quit.");
         System.out.println();
     }
+        
 }
