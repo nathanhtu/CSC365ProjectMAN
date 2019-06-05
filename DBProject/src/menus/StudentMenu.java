@@ -78,12 +78,15 @@ public class StudentMenu {
                 prepStatement.setString(1, operation);
                 prepStatement.setString(2, entry);
                 resultSet = prepStatement.executeQuery();
+                DBTablePrinter.printResultSet(resultSet);
                 
                 //if resultSet not empty
                 System.out.print("Enter the serial of the book you want to reserve or type 0 to go back: ");
                 entry = scan.nextLine();
                 //if entry == 0, loop
-                //else, check if stock == 0
+                //check if stock == 0 or reservations > stock
+                Book b = getBookBySerial(entry);
+                
                 prepStatement = connect.
                     prepareStatement("insert into Checkout (serial, studentID, checkoutDate, dueDate) values (?, ?, ?, ?));
                 prepStatement.setString(1, entry);
@@ -94,16 +97,34 @@ public class StudentMenu {
                 prepStatement.setString(4, CURDATE());
                 prepStatement.executeUpdate();
                 //triggers should take care to update Books.stock
+                //also needs trigger to upddate Reservations.checkedOut if user had previous reservation
                 
             }
             else if (operation == 2) {
                 System.out.println("Returning.");
+                //show all books cheked out
+                prepStatement = connect.prepareStatement("select * from Checkout where checkinDate is NULL and studentID = ?);
+                //needs studentID from student object
+                prepStatement.setString(1, studentID);
+                resultSet = prepStatement.executeQuery();
+                //needs check if set is empty before printing or asking to return book
+                DBTablePrinter.printResultSet(resultSet);
+                
+                System.out.print("Enter the serial of the book you want to return or 0 to cancel");
+                entry = scan.nextLine();
+                //needs loop for incorrect entries
+                prepStatement = connect.
+                    prepareStatement("update Checkout set checkinDate = CURDATE() where serial = ? and checkinDate is NULL");
+                prepStatement.setString(1, entry);
+                prepStatement.executeUpdate();
             }
             else if (operation == 3) {
                 System.out.println("Reserving.");
+                //
             }
             else if (operation == 4) {
                 System.out.println("Extending due date.");
+                
             }
             else if (operation == 5) {
                 System.out.println("Searching.");
