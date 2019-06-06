@@ -10,11 +10,9 @@ public class StudentMenu {
         
         private Statement statement = null;
         private ResultSet resultSet = null;
-        private 
-            
-            
-            aredStatement prepStatement = null;
+        private PreparedStatement prepStatement = null;
         String entry;
+        int curStock, curReserved;
         
         //scan for first and last name
         //needs a student object
@@ -80,16 +78,32 @@ public class StudentMenu {
                 resultSet = prepStatement.executeQuery();
                 DBTablePrinter.printResultSet(resultSet);
                 
-                //if resultSet not empty
+                //needs to check if resultSet not empty
                 System.out.print("Enter the serial of the book you want to reserve or type 0 to go back: ");
                 entry = scan.nextLine();
-                //if entry == 0, loop
+                //needs parameters if entry == 0, loop
                 //check if stock == 0 or reservations > stock
-                Book b = getBookBySerial(entry);
-                //following statement should go into getBookBySerial lul
+                //following statement queries for the book
                 prepStatement = connect.prepareStatement("select * from Books where serial = ?);
                 prepStatement.setString(1, entry);
                 resultSet = prepStatement.executeQuery();
+                
+                //following checks if stock == 0                                         
+                resultSet.next();
+                curStock = resultSet.getInt("stock");
+                if (curStock == 0){
+                    continue;
+                }
+                
+                //following checks if reservations > stock
+                prepStatement = connect.prepareStatement("select count(*) as reserved from Reservations where serial = ? and checkedOut is NULL");
+                prepStatement.setString(1, entry);
+                resultSet = prepStatement.executeQuery();
+                resultSet.next();
+                curReserved = resultSet.getInt("reserved");
+                if (curReserved >= curStock){
+                    continue;
+                }
                 
                 prepStatement = connect.
                     prepareStatement("insert into Checkout (serial, studentID, checkoutDate, dueDate) values (?, ?, ?, ?));
@@ -124,11 +138,33 @@ public class StudentMenu {
             }
             else if (operation == 3) {
                 System.out.println("Reserving.");
-                //
+                //needs to use same search function in checkout
+                //user search function
+                System.out.print("Enter the serial of the book you want to reserve or 0 to cancel");
+                entry = scan.nextLine();
+                
+                //inserts a reservation
+                prepStatement = connect.
+                    prepareStatement("insert into Reservations (serial, studentID) values (?, ?)");
+                prepStatement.setString(1, entry);
+                //needs studentID from Student object
+                prepStatement.setInt(2, studentID);
+                prepStatement.executeUpdate();
             }
             else if (operation == 4) {
                 System.out.println("Extending due date.");
+                //brings up existing checkouts
+                prepStatement = connect.
+                    prepareStatement("select * from Checkout where studentID = ? and checkinDate is NULL");
+                //needs studentID from Student object
+                prepStatement.setInt(1, studentID);
+                resultSet = prepStatement.executeQuery();
+                DBTablePrinter.printResultSet(resultSet);
                 
+                System.out.print("Enter the serial of the book you want to extend or 0 to cancel");
+                entry = scan.nextLine();
+                //prepStatement = connect.
+                //    prepareStatement("
             }
             else if (operation == 5) {
                 System.out.println("Searching.");
