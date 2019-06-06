@@ -86,6 +86,10 @@ public class StudentMenu {
                 //if entry == 0, loop
                 //check if stock == 0 or reservations > stock
                 Book b = getBookBySerial(entry);
+                //following statement should go into getBookBySerial lul
+                prepStatement = connect.prepareStatement("select * from Books where serial = ?);
+                prepStatement.setString(1, entry);
+                resultSet = prepStatement.executeQuery();
                 
                 prepStatement = connect.
                     prepareStatement("insert into Checkout (serial, studentID, checkoutDate, dueDate) values (?, ?, ?, ?));
