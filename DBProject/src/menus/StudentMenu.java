@@ -1,34 +1,48 @@
 package menus;
 
 import java.util.Scanner;
+import util.*;
 
 public class StudentMenu {
 
     public static void run() {
         int operation, ID;
+        Student student;
         Scanner scan = new Scanner(System.in);
-        
+
         private Statement statement = null;
         private ResultSet resultSet = null;
         private PreparedStatement prepStatement = null;
-        String entry;
+        String entry, stringOp;
         int choice = 0, curStock, curReserved;
-        
+
+
         //scan for first and last name
         //needs a student object
         System.out.print("Enter your student ID: ");
         ID = scan.nextInt();
 
+        // assumes that user puts in correct ID
+
         //not yet valid without the connect object
-        prepStatement = connect.prepareStatement("select status, numBooks from Students where studentID = ?");
+        prepStatement = connect.prepareStatement("select * from Students where studentID = ?");
         prepStatement.setInt(1, ID);
-        
+
         //execute Query
         resultSet = prepStatement.executeQuery();
+        resultSet.next();
+
+        // add all columns into student object
+        student.setStudentID(resultSet.getInt("studentID"));
+        student.setFirstName(resultSet.getString("firstName"));
+        student.setLastName(resultSet.getString("lastName"));
+        student.setStatus(resultSet.getString("status"));
+        student.setNumBooks(resultSet.getInt("numBooks"));
+
         //take the information out of result set and add it to an object or variables
         //probably need to make this a loop in case the student ID doesnt exist or the
         //query returns an empty table
-        
+
         while (true) {
             showStudentOptions();
             do{
@@ -41,7 +55,21 @@ public class StudentMenu {
             } while (operation < 1 || operation > 6);
 
             if (operation == 1) {
+                choice = 0;
                 while (choice != -1){
+
+                    //checks if student has max books checked checkedOut
+                    if (student.numBooks == 3 && student.status.equals("UG")) {
+                        System.out.println("Reached maximum number of checkouts.");
+                        choice = -1;
+                        continue;
+                    }
+                    else if (student.numBooks == 5 && student.status.equals("GR")) {
+                        System.out.println("Reached maximum number of checkouts.");
+                        choice = -1;
+                        continue;
+                    }
+
                     System.out.println("Checking out.");
                     statement = createStatement();
                     resultSet = statement.executeQuery("select * from Books");
@@ -57,33 +85,35 @@ public class StudentMenu {
                         choice = scan.nextInt();
                     } while (choice < 1 || choice > 5);
 
-                    //needs a loop if set returns empty
-                    if (operation == 1){
+                    if (choice == 1){
+                        stringOp = "serial";
                         System.out.print("Enter the serial number: ");
                     }
-                    else if (operation == 2){
+                    else if (choice == 2){
+                        stringOp = "title";
                         System.out.print("Enter the title: ");
                     }
-                    else if (operation == 3){
+                    else if (choice == 3){
+                        stringOp = "author";
                         System.out.print("Enter the author: ");
                     }
-                    else if (operation == 4){
+                    else if (choice == 4){
+                        stringOp = "genre";
                         System.out.print("Enter the genre: ");
                     }
-                    else if (operation == 5){
-                        System.out.println("Exiting the search.");
+                    else if (choice == 5){
+                        System.out.println("Exiting checkout.");
                         choice = -1;
                         continue;
                     }
-                    
+
                     entry = scan.nextLine();
-                    //skeleton set up. Needs to be either distributed in each operation choice
-                    //or made into a general statement with variables
+                    //Search query for books
                     prepStatement = connect.prepareStatement("select * from Books where ? = ?");
-                    prepStatement.setString(1, operation);
+                    prepStatement.setString(1, stringOp);
                     prepStatement.setString(2, entry);
                     resultSet = prepStatement.executeQuery();
-                    
+
                     //prints result set if not empty
                     if (resultSet.next() == false){
                         System.out.println("The search returned empty");
@@ -92,7 +122,7 @@ public class StudentMenu {
                     //move pointer back to where it was before printing
                     resultSet.previous();
                     DBTablePrinter.printResultSet(resultSet);
-                
+
                     //needs to check if resultSet not empty
                     System.out.print("Enter the serial of the book you want to reserve or type 0 to go back: ");
                     entry = scan.nextLine();
@@ -101,15 +131,15 @@ public class StudentMenu {
                     prepStatement = connect.prepareStatement("select * from Books where serial = ?");
                     prepStatement.setString(1, entry);
                     resultSet = prepStatement.executeQuery();
-                
-                    //following checks if stock == 0                                         
+
+                    //following checks if stock == 0
                     resultSet.next();
                     curStock = resultSet.getInt("stock");
                     if (curStock == 0){
                         System.out.println("That book is currently out of stock");
                         continue;
                     }
-                
+
                     //following checks if reservations > stock
                     prepStatement = connect.prepareStatement("select count(*) as reserved from Reservations where serial = ? and checkedOut is NULL");
                     prepStatement.setString(1, entry);
@@ -120,10 +150,13 @@ public class StudentMenu {
                         System.out.println("That book is currently reserved for other students");
                         continue;
                     }
-                    
+
                     //prepStatement to add into Checkout
                     prepStatement = connect.
                         prepareStatement("insert into Checkout (serial, studentID, checkoutDate, dueDate) values (?, ?, ?, ?)");
+
+                        // Check for GR or UG
+
                     prepStatement.setString(1, entry);
                     //needs studentID from student object
                     prepStatement.setInt(2, studentID);
@@ -144,7 +177,7 @@ public class StudentMenu {
                 resultSet = prepStatement.executeQuery();
                 //needs check if set is empty before printing or asking to return book
                 DBTablePrinter.printResultSet(resultSet);
-                
+
                 System.out.print("Enter the serial of the book you want to return or 0 to cancel");
                 entry = scan.nextLine();
                 //needs loop for incorrect entries
@@ -159,7 +192,7 @@ public class StudentMenu {
                 //user search function
                 System.out.print("Enter the serial of the book you want to reserve or 0 to cancel");
                 entry = scan.nextLine();
-                
+
                 //inserts a reservation
                 prepStatement = connect.
                     prepareStatement("insert into Reservations (serial, studentID) values (?, ?)");
@@ -177,7 +210,7 @@ public class StudentMenu {
                 prepStatement.setInt(1, studentID);
                 resultSet = prepStatement.executeQuery();
                 DBTablePrinter.printResultSet(resultSet);
-                
+
                 System.out.print("Enter the serial of the book you want to extend or 0 to cancel");
                 entry = scan.nextLine();
                 //prepStatement = connect.
@@ -205,5 +238,5 @@ public class StudentMenu {
         System.out.println("(6) Quit.");
         System.out.println();
     }
-        
+
 }
