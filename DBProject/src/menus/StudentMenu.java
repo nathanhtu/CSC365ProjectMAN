@@ -55,7 +55,7 @@ public class StudentMenu {
                             scan.next();
                         }
                         choice = scan.nextInt();
-                    } while (choice < 1 || choice > 4);
+                    } while (choice < 1 || choice > 5);
 
                     //needs a loop if set returns empty
                     if (operation == 1){
