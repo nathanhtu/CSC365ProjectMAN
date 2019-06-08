@@ -171,7 +171,7 @@ public class StudentMenu {
             else if (operation == 2) {
                 System.out.println("Returning.");
                 //show all books cheked out
-                prepStatement = connect.prepareStatement("select * from Checkout where checkinDate is NULL and studentID = ?);
+                prepStatement = connect.prepareStatement("select * from Checkout where checkinDate is NULL and studentID = ?");
                 //needs studentID from student object
                 prepStatement.setString(1, studentID);
                 resultSet = prepStatement.executeQuery();
