@@ -9,13 +9,15 @@ public class Checkout {
 	private Date checkoutDate;
 	private Date checkinDate;
 	private Date dueDate;
+	private Integer extended;
 	
 	public Checkout() {
 		
 	}
 	
-	public Checkout(Integer checkoutID, String serial, Integer studentID, Date checkoutDate, Date checkinDate,
-			Date dueDate) {
+	public Checkout(Integer checkoutID, String serial, Integer studentID, 
+			Date checkoutDate, Date checkinDate,
+			Date dueDate, Integer extended) {
 		this.checkoutID = checkoutID;
 		this.serial = serial;
 		this.studentID = studentID;
@@ -70,6 +72,14 @@ public class Checkout {
 
 	public void setDueDate(Date dueDate) {
 		this.dueDate = dueDate;
+	}
+	
+	public Integer getExtended() {
+		return this.extended;
+	}
+	
+	public void setExtended(Integer extended) {
+		this.extended = extended;
 	}
 
 	public String display() {

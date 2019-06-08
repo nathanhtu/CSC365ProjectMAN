@@ -1,16 +1,11 @@
-import util.*;
+
 import menus.*;
 import java.util.Scanner;
 
 public class Main {
 
-
 	public static void main(String[] args) {
-		DBConnector dbc = new DBConnector();
-		Integer studentID;
-		String firstName, lastName;
-
-		int authority, status;
+		int authority;
 		Scanner scan = new Scanner(System.in);
 		while (true) {
 			do{
@@ -23,21 +18,22 @@ public class Main {
 			} while (authority < 1 || authority > 4);
 
 			if (authority == 1){
-				StudentMenu.run();
+				StudentMenu smenu = new StudentMenu();
+				smenu.run();
 			}
 
 			else if (authority == 2){
 				LibrarianMenu.run();
 			}
-
 			else if (authority == 3){
-				ManagerMenu.run();
+				ManagerMenu mmenu = new ManagerMenu();
+				mmenu.run();
 			}
 			else if (authority == 4) {
 				break;
 			}
 		}
-
+		scan.close();
 
 	}
 

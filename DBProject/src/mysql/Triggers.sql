@@ -42,16 +42,6 @@
         END$$
     DELIMITER ;
 
--- Extending a due date for undergraduate student
-    DELIMITER $$
-        CREATE TRIGGER extend_dueDate_UG BEFORE UPDATE
-            ON Checkout
-            FOR EACH ROW BEGIN
-            IF OLD.extended != NEW.extended
-            UPDATE Checkout SET Checkout.dueDate = DATEADD(day, DATEDIFF(day,Checkout.checkoutDate,Checkout.dueDate), Checkout.dueDate)
-            WHERE 
-
-
 -- Checking if undergraduate students have reached max number of books
     DELIMITER $$
         CREATE TRIGGER check_UGnumBooks_trigger BEFORE UPDATE

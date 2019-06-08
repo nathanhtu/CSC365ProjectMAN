@@ -7,8 +7,7 @@ public class Student {
 	private String status;
 	private Integer numBooks;
 	
-	public Student() {
-		
+	public Student() {	
 	}
 	
 	public Student(Integer studentID, String firstName, String lastName, String status, Integer numBooks) {
