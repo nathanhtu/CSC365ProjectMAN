@@ -265,20 +265,67 @@ public class StudentMenu {
     }
     
     public void bookExtendDueDate() {
-    	Scanner scan = new Scanner(System.in);
-    	try {
+	    Scanner scan = new Scanner(System.in);
+	    int choice = 0, curReserved, curStock;
+		String entry;
+	    try {
 	        System.out.println("Extending due date.");
 	        //brings up existing checkouts
 	        prepStatement = connect.
 	            prepareStatement("select * from Checkout where studentID = ? and checkinDate is NULL");
-	        //needs studentID from Student object
 	        prepStatement.setInt(1, student.getStudentID());
 	        resultSet = prepStatement.executeQuery();
+		//check if resultSet empty
+		if (resultSet.next() == false){
+			System.out.println("There are currently no books checked out by the student.");
+			return;
+		}
+		resultSet.previous();
 	        DBTablePrinter.printResultSet(resultSet);
+		
+		while (choice != -1){
+			System.out.print("Enter the serial of the book you want to extend or type 0 to go back: ");
+	        	entry = scan.nextLine();
+	        	if (entry.equals("0")) {
+	        		choice = -1;
+	            		continue;
+			}
+			
+			//look for book
+			prepStatement = connect.
+				prepareStatement("select * from Books where serial = ?");
+			prepStatement.setString(1, entry);
+			resultSet = prepStatement.executeQuery();
+			if (resultSet.next() == false){
+				System.out.println("There are no books checked out with that serial number.");
+				continue;
+			}
+			
+			//check if reserved >= stock
+			curStock = resultSet.getInt("stock");
+			prepStatement = connect.
+				prepareStatement("select count(*) as num from Reservations where serial = ? and checkedOut = 0");
+			prepStatement.setString(1, entry);
+			resultSet = prepStatement.executeQuery();
+			resultSet.next();
+			curReserved = resultSet.getInt("num");
+			if (curReserved >= curStock){
+				choice = -1;
+				System.out.println("This book is currently reserved and unavailable for an extension");
+				continue;
+			}
+			
+			//extend book
+			prepStatement = connect.
+				prepareStatement("update Checkout set dueDate = DATEADD(day, DATEDIFF(day, checkoutDate, dueDate)," +
+						 "checkoutDate), extended = 1 where studentID = ? and serial = ?");
+			prepStatement.setInt(1, student.getStudentID());
+			prepStatement.setString(2, entry);
+			prepStatement.executeUpdate();
+			choice = -1;
+		}
 	
-	        System.out.print("Enter the serial of the book you want to extend or 0 to cancel");
-	        entry = scan.nextLine();
-    	} catch (Exception e) {
+	} catch (Exception e) {
     	} finally {
     		close();
     	}
