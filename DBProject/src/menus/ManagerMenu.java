@@ -41,7 +41,7 @@ public class ManagerMenu {
 	                    choice = scan.nextInt();
 	                } while (choice < 2018 || choice > 2019);
 			
-	                prepStatement = connect.prepareStatement(getLongQuery(toString(choice)));
+	                prepStatement = connect.prepareStatement(getLongQuery(Integer.toString(choice)));
 	                resultSet = prepStatement.executeQuery();
 	                DBTablePrinter.printResultSet(resultSet);
 	                System.out.println("Showing month by month revenue.");
@@ -73,8 +73,8 @@ public class ManagerMenu {
         }
     }
 
-    public static void getLongQuery(String year) {
-		    private String longQuery = "SELECT DISTINCT b.serial, b.title, \n" + 
+    public String getLongQuery(String year) {
+		    String longQuery = "SELECT DISTINCT b.serial, b.title, \n" + 
     		"	IF (JAN.jan IS NOT NULL, JAN.jan, 0) as Jan,\n" + 
     		"	IF (FEB.feb IS NOT NULL, FEB.feb, 0) as Feb,\n" + 
     		"	IF (MAR.mar IS NOT NULL, MAR.mar, 0) as Mar,\n" + 
