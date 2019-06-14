@@ -65,3 +65,13 @@
             END IF;
         END$$
     DELIMITER ;
+
+-- Checking if a book was already reserved
+    DELIMITER $$
+        CREATE TRIGGER checkoff_reservation AFTER INSERT
+            ON Checkout
+            FOR EACH ROW BEGIN
+            UPDATE Reservations SET Reservations.checkedOut = 1
+                WHERE Reservations.studentID = NEW.studentID;
+        END$$
+    DELIMITER ;
