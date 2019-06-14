@@ -1,10 +1,8 @@
 package menus;
 
 import java.sql.Connection;
-import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.util.Calendar;
 import java.util.Scanner;
 import util.*;
 import entity.*;
@@ -14,23 +12,24 @@ public class StudentMenu {
 	private PreparedStatement prepStatement = null;
 	private Connection connect = null;
 	private Student student;
+	private DBConnector dbc;
 	private String entry;
 
-	public StudentMenu() {		
+	public StudentMenu() {
+        dbc = new DBConnector();
+        connect = dbc.getConnection();              
 	}
 	
     public void run() {
         int operation;
-        DBConnector dbc = new DBConnector();
-        connect = dbc.getConnection();      
-        student = getStudent();
         Scanner scan = new Scanner(System.in);
+        student = getStudent();
         while (true) {        	
             showStudentOptions();          
             do{
                 System.out.print("Enter the number of the desired operation: ");
                 while (!scan.hasNextInt()){
-                    System.out.println("Invalid entry. Please try again: ");                 
+                    System.out.print("Invalid entry. Please try again: ");                 
                     scan.next();
                 }
                 operation = scan.nextInt();
@@ -49,13 +48,12 @@ public class StudentMenu {
             	bookExtendDueDate();
             }
             else if (operation == 5) {
-                bookSearch();
+                queryBooks();
             }
             else if (operation == 6) {
             	viewCheckouts();
             }
             else if (operation == 7) {
-            	scan.close();
                 System.out.println("Exiting student menu.");
                 System.out.println();
                 break;
@@ -71,7 +69,8 @@ public class StudentMenu {
     	try {
 	    	while (choice != -1){	 		        
 		        do{
-		            System.out.print("Search by (1)serial, (2)title, (3)author, (4)genre, or (5)cancel: ");
+		        	System.out.println("\nHow would you like to search for a book?");
+		            System.out.print("Search by (1)serial, (2)title, (3)author, (4)genre, (5)continue or (6)cancel: ");
 		            while (!scan.hasNextInt()){
 		                System.out.print("Invalid entry. Please try again: ");
 		                scan.next();
@@ -108,7 +107,11 @@ public class StudentMenu {
 			        prepStatement.setString(1, "%" + entry + "%");
 			        resultSet = prepStatement.executeQuery();
 		        }
-		        else if (choice == 5){
+		        else if (choice == 5) {
+		        	System.out.println("Continuing without search.");
+		        	break;
+		        }
+		        else if (choice == 6){
 		            System.out.println("Canceling search.");
 		            choice = -1;
 		            continue;
@@ -134,6 +137,7 @@ public class StudentMenu {
 	    	}
 	    	return choice;
     	} catch (Exception e) {
+    		System.err.println(e);
     	} finally {
     		close();
     	}
@@ -144,25 +148,22 @@ public class StudentMenu {
     	java.util.Date utilDate = new java.util.Date();
     	int choice = 0, curStock, curReserved;
     	Scanner scan = new Scanner(System.in);
-    	System.out.println("in book checkout");
     	try {
 	        while (choice != -1) {
-	        	System.out.println("checkpoint 1");
 	            //checks if student has max books checked checkedOut
 	            if ( (student.getNumBooks() == 3 && student.getStatus().equals("UG")) ||
 	            		(student.getNumBooks()  == 5 && student.getStatus().equals("GR")) ){
-	                System.out.println("Reached maximum number of checkouts.");
+	                System.out.println("Student has currently reached maximum number of checkouts.");
 	                choice = -1;
 	                continue;
 	            }
-	            System.out.println("checkpoint 2");	
 	            
 	            //query books to see ID's
 	            int temp = queryBooks();
 	            if (temp == -1 || temp == 0) {
-	            	choice = -1;
 	            	System.out.println("Canceling check out.");
-	            	continue;
+	            	choice = -1;
+	  	            continue;
 	            }
 	            
 	            System.out.print("Enter the serial of the book you want to checkout or type 0 to go back: ");
@@ -180,6 +181,7 @@ public class StudentMenu {
 	            curStock = resultSet.getInt("stock");
 	            if (curStock == 0){
 	                System.out.println("That book is currently out of stock");
+	                choice = -1;
 	                continue;
 	            }
 	 
@@ -190,8 +192,17 @@ public class StudentMenu {
 	            resultSet.next();
 	            curReserved = resultSet.getInt("reserved");
 	            if (curReserved >= curStock){
-	                System.out.println("That book is currently reserved for other students");
-	                continue;
+	            	//checks if student has an existing reservation for the book
+	            	prepStatement = connect.prepareStatement("select * from Reservations where serial = ? and studentId = ? and checkedOut = 0");
+	            	prepStatement.setString(1, entry);
+	            	prepStatement.setInt(2, student.getStudentID());
+	            	resultSet = prepStatement.executeQuery();
+	            	//if set returns empty, student did not have a reservation
+	            	if (resultSet.next() == false) {
+	            		System.out.println("That book is currently being reserved by another student");
+	            		continue;
+	            	}
+
 	            }
 	            
 	            //prepStatement to add into Checkout
@@ -207,59 +218,94 @@ public class StudentMenu {
 	            	prepStatement.setDate(4, new java.sql.Date(utilDate.getTime() + 1209600000));
 	            }
 	            prepStatement.executeUpdate();
+	            System.out.println("Books has successfully been checked out. Thank you!");
+	            student.setNumBooks(student.getNumBooks() + 1);
 	            choice = -1;
 	        }
 
     	} catch (Exception e) { 	
-    		System.err.print(e);
+    		System.err.println(e);
     	} finally {
     		close();
     	}
     }
     
     public void bookReturn() {
+    	int choice = 0;
     	Scanner scan = new Scanner(System.in);
     	try {
-	    	System.out.println("Returning.");
-	        //show all books checked out
-	        prepStatement = connect.prepareStatement("select * from Checkout where checkinDate is NULL and studentID = ?");
-	        //needs studentID from student object
-	        prepStatement.setInt(1, student.getStudentID());
-	        resultSet = prepStatement.executeQuery();
-	        //needs check if set is empty before printing or asking to return book
-	        DBTablePrinter.printResultSet(resultSet);
-	
-	        System.out.print("Enter the serial of the book you want to return or 0 to cancel");
-	        entry = scan.nextLine();
-	        //needs loop for incorrect entries
-	        prepStatement = connect.
-	            prepareStatement("update Checkout set checkinDate = CURDATE() where serial = ? and checkinDate is NULL");
-	        prepStatement.setString(1, entry);
-	        prepStatement.executeUpdate();
-    	} catch (Exception e)  {   		
+    		while (choice != -1) {
+		        prepStatement = connect.prepareStatement("select * from Checkout where checkinDate is NULL and studentID = ?");
+		        prepStatement.setInt(1, student.getStudentID());
+		        resultSet = prepStatement.executeQuery();
+
+		        if (resultSet.next()) {
+		        	resultSet.previous();
+		        	DBTablePrinter.printResultSet(resultSet);
+		        } else {
+		        	System.out.println("No books are currently checked out for user. ");
+		        	choice = -1;
+		        	continue;
+		        }
+		
+		        System.out.print("Enter the serial of the book you want to return or 0 to cancel: ");
+		        entry = scan.nextLine();
+	            if (entry.equals("0")) {
+	            	choice = -1;
+	            	continue;
+	            }
+	            
+		        //needs loop for incorrect entries
+		        prepStatement = connect.
+		            prepareStatement("update Checkout set checkinDate = CURDATE() where serial = ? and checkinDate is NULL");
+		        prepStatement.setString(1, entry);
+		        if ((prepStatement.executeUpdate()) == 0) {
+		        	System.out.println("Books does not exist in the system. ");
+		        	choice = -1;
+		        	continue;
+		        }
+		        System.out.println("Books has successfully been returned. Thank you!");
+		        student.setNumBooks(student.getNumBooks() - 1);
+		        choice = -1;
+    		}
+    	} catch (Exception e)  {   	
+    		System.err.println(e);
     	} finally {
     		close();
     	}
     }
     
     public void bookReserve() {
+    	int choice = 0;
     	Scanner scan = new Scanner(System.in);
+    	//check if reservation already exists, display current reservations
     	try {
-	    	System.out.println("Reserving.");
-	        //needs to use same search function in checkout
-	        //user search function
-	        System.out.print("Enter the serial of the book you want to reserve or 0 to cancel");
-	        entry = scan.nextLine();
-	
-	        //inserts a reservation
-	        prepStatement = connect.
-	            prepareStatement("insert into Reservations (serial, studentID) values (?, ?)");
-	        prepStatement.setString(1, entry);
-	        //needs studentID from Student object
-	        prepStatement.setInt(2, student.getStudentID());
-	        prepStatement.executeUpdate();
+    		while (choice != -1) {
+	    		int temp = queryBooks();
+	            if (temp == -1 || temp == 0) {
+	            	choice = -1;
+	            	System.out.println("Canceling reservation.");
+	            	continue;
+	            }
+	            
+		        System.out.print("Enter the serial of the book you want to reserve or 0 to cancel: ");
+		        entry = scan.nextLine();
+	            if (entry.equals("0")) {
+	            	choice = -1;
+	            	continue;
+	            }
+		
+		        prepStatement = connect.
+		            prepareStatement("insert into Reservations (serial, studentID) values (?, ?)");
+		        prepStatement.setString(1, entry);
+		        prepStatement.setInt(2, student.getStudentID());
+		        prepStatement.executeUpdate();
+		        System.out.println("Books has successfully been reserved. Thank you!");
+		        choice = -1;
+    		}
     	} catch (Exception e) {
-    	} finally {
+    		System.err.println(e);
+    	} finally {   		
     		close();
     	}
     }
@@ -268,88 +314,116 @@ public class StudentMenu {
 	    Scanner scan = new Scanner(System.in);
 	    int choice = 0, curReserved, curStock;
 		String entry;
+		
 	    try {
-	        System.out.println("Extending due date.");
 	        //brings up existing checkouts
 	        prepStatement = connect.
 	            prepareStatement("select * from Checkout where studentID = ? and checkinDate is NULL");
 	        prepStatement.setInt(1, student.getStudentID());
 	        resultSet = prepStatement.executeQuery();
-		//check if resultSet empty
-		if (resultSet.next() == false){
-			System.out.println("There are currently no books checked out by the student.");
-			return;
-		}
-		resultSet.previous();
-	        DBTablePrinter.printResultSet(resultSet);
-		
-		while (choice != -1){
-			System.out.print("Enter the serial of the book you want to extend or type 0 to go back: ");
-	        	entry = scan.nextLine();
-	        	if (entry.equals("0")) {
-	        		choice = -1;
-	            		continue;
-			}
-			
-			//look for book
-			prepStatement = connect.
-				prepareStatement("select * from Books where serial = ?");
-			prepStatement.setString(1, entry);
-			resultSet = prepStatement.executeQuery();
+			//check if resultSet empty
 			if (resultSet.next() == false){
-				System.out.println("There are no books checked out with that serial number.");
-				continue;
+				System.out.println("There are currently no books checked out by the student.");
+				return;
 			}
 			
-			//check if reserved >= stock
-			curStock = resultSet.getInt("stock");
-			prepStatement = connect.
-				prepareStatement("select count(*) as num from Reservations where serial = ? and checkedOut = 0");
-			prepStatement.setString(1, entry);
-			resultSet = prepStatement.executeQuery();
-			resultSet.next();
-			curReserved = resultSet.getInt("num");
-			if (curReserved >= curStock){
+			resultSet.previous();
+		    DBTablePrinter.printResultSet(resultSet);
+			
+		    
+			while (choice != -1){
+				System.out.print("Enter the serial of the book you want to extend or type 0 to go back: ");
+		        	entry = scan.nextLine();
+		        	if (entry.equals("0")) {
+		        		choice = -1;
+		            		continue;
+				}
+				
+				//look for book
+				prepStatement = connect.
+					prepareStatement("select * from Books where serial = ?");
+				prepStatement.setString(1, entry);
+				resultSet = prepStatement.executeQuery();
+				if (resultSet.next() == false){
+					System.out.println("There are no books checked out with that serial number.");
+					continue;
+				}
+				curStock = resultSet.getInt("stock");
+				
+				//check if book has been extended previously
+				prepStatement = connect.prepareStatement("select * from Checkout where serial = ? and studentID = ? and checkinDate IS NULL");
+				prepStatement.setString(1, entry);
+				prepStatement.setInt(2, student.getStudentID());
+				resultSet = prepStatement.executeQuery();
+				resultSet.next();
+				if (resultSet.getInt("extended") == 1){
+					System.out.println("This book has been previously extended and cannot be extended again.");
+					continue;
+				}
+				
+				//check if reserved >= stock
+				prepStatement = connect.
+					prepareStatement("select count(*) as num from Reservations where serial = ? and checkedOut = 0");
+				prepStatement.setString(1, entry);
+				resultSet = prepStatement.executeQuery();
+				resultSet.next();
+				curReserved = resultSet.getInt("num");
+				if (curReserved >= curStock){
+					choice = -1;
+					System.out.println("This book is currently reserved and unavailable for an extension. ");
+					continue;
+				}
+				
+				//extend book
+				prepStatement = connect.
+					prepareStatement("update Checkout set dueDate = DATE_ADD(dueDate, INTERVAL DATEDIFF(dueDate, checkoutDate) DAY), extended = 1 where studentID = ? and serial = ?");
+				prepStatement.setInt(1, student.getStudentID());
+				prepStatement.setString(2, entry);
+				prepStatement.executeUpdate();
 				choice = -1;
-				System.out.println("This book is currently reserved and unavailable for an extension");
-				continue;
+				System.out.println("Due date has successfully been extended. Thank you!");
 			}
-			
-			//extend book
-			prepStatement = connect.
-				prepareStatement("update Checkout set dueDate = DATEADD(day, DATEDIFF(day, checkoutDate, dueDate)," +
-						 "checkoutDate), extended = 1 where studentID = ? and serial = ?");
-			prepStatement.setInt(1, student.getStudentID());
-			prepStatement.setString(2, entry);
-			prepStatement.executeUpdate();
-			choice = -1;
+		
+			} catch (Exception e) {
+				System.err.println(e);
+			} finally {
+
+		    	close();
 		}
-	
-	} catch (Exception e) {
-    	} finally {
-    		close();
-    	}
-    }
-    
-    public void bookSearch()  {
-    	System.out.println("Searching.");
     }
     
     public void viewCheckouts()  {
     	try {
-	        System.out.println("Showing all currently checked out books.");
+    		System.out.println("\nShowing all books currently checked out on your account.");
 	        prepStatement = connect.
 	            prepareStatement("select * from Checkout where studentID = ? and checkinDate is NULL");
 	        prepStatement.setInt(1, student.getStudentID());
 	        resultSet = prepStatement.executeQuery();
 	        DBTablePrinter.printResultSet(resultSet);
+	        
+	        prepStatement = connect.
+		        prepareStatement("select * from Checkout where studentID = ? and dueDate < CURDATE() and checkinDate is NULL");
+		    prepStatement.setInt(1, student.getStudentID());
+		    resultSet = prepStatement.executeQuery();
+		    if (resultSet.next()) {
+		    	resultSet.previous();
+		    	System.out.print("------------------------------------------------------------");
+		        System.out.println("------------------------------------------------------------");
+		        System.out.println("Showing all books that are overdue. Please return ASAP.");
+		    	DBTablePrinter.printResultSet(resultSet);
+		    } else {
+		    	System.out.println("No overdue books.");
+		    }
     	} catch (Exception e) {
+    		System.err.println(e);
+    	} finally {
+    		close();
     	}
     }
 
     public void showStudentOptions() {
         System.out.println();
-        System.out.println("-- Student Operations-- ");
+        System.out.println("-------- Student Operations--------");
         System.out.println("(1) Checkout a book.");
         System.out.println("(2) Return a book.");
         System.out.println("(3) Make a reservation.");
@@ -357,6 +431,7 @@ public class StudentMenu {
         System.out.println("(5) Search book availability.");
         System.out.println("(6) View checkout history.");
         System.out.println("(7) Quit.");
+        System.out.println("-----------------------------------");
         System.out.println();
     }
 
@@ -368,19 +443,21 @@ public class StudentMenu {
     		while (resultSet == null) {
 		        //scan for first and last name
 		        //needs a student object
-		    	System.out.print("Enter your student ID: ");
+    	        System.out.print("Enter student ID: ");
 		        int ID = newScanner.nextInt();
-		        newScanner.nextLine();	        
+		        newScanner.nextLine();
 		        
-		        System.out.println("Prepping statement. with ID = " + ID);
 		        //prepare query with student ID.
 		        prepStatement = connect.prepareStatement("select * from Students where studentID = ?");
 		        prepStatement.setInt(1, ID);
-		        System.out.println("Getting result set.");
+		        
 		        //execute the prepared statement query
 		        resultSet = prepStatement.executeQuery();
-		        resultSet.next();
-		        System.out.println("Placing result set into Student object");
+		        if (!resultSet.next()) {
+		        	System.out.println("Student ID doesn't exist.");
+		        	resultSet = null;
+		        	continue;
+		        }
 		        //check if the student ID exists and create Student if so
 		        //add all columns into student object
 		        student.setStudentID(resultSet.getInt("studentID"));
@@ -394,8 +471,9 @@ public class StudentMenu {
     	}
     	return student;
     }
+    
 
-    private void close() {
+    public void close() {
         try {
             if (resultSet != null) {
                 resultSet.close();
@@ -404,7 +482,7 @@ public class StudentMenu {
             	prepStatement.close();
             }
         } catch (Exception e) {
-
+        	System.err.println(e);
         }
     }
 }
