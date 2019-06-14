@@ -35,12 +35,10 @@ public class LibrarianMenu {
                 operation = scan.nextInt();
             } while (operation < 1 || operation > 3);
 
-            if (operation == 1) {
-                bookCheckout();
-            }
-            else if (operation == 2) {
-            	bookReturn();
-            }
+            if (operation == 1) { bookCheckout(); }
+            
+            else if (operation == 2) { bookReturn(); }
+            
             else if (operation == 3) {
                 System.out.println("Exiting librarian menu.");
                 System.out.println();
@@ -55,23 +53,19 @@ public class LibrarianMenu {
         try {
             resultSet = null;
             while (resultSet == null) {
-                //scan for first and last name
-                //needs a student object
+
                 System.out.print("Enter the student's ID: ");
                 int ID = newScanner.nextInt();
                 newScanner.nextLine();
 
-                System.out.println("Prepping statement. with ID = " + ID);
-                //prepare query with student ID.
                 prepStatement = connect.prepareStatement("select * from Students where studentID = ?");
                 prepStatement.setInt(1, ID);
-                System.out.println("Getting result set.");
-                //execute the prepared statement query
                 resultSet = prepStatement.executeQuery();
-                resultSet.next();
-                System.out.println("Placing result set into Student object");
-                //check if the student ID exists and create Student if so
-                //add all columns into student object
+		        if (!resultSet.next()) {
+		        	System.out.println("Student ID doesn't exist. Please try again. ");
+		        	resultSet = null;
+		        	continue;
+		        }
                 student.setStudentID(resultSet.getInt("studentID"));
                 student.setFirstName(resultSet.getString("firstName"));
                 student.setLastName(resultSet.getString("lastName"));
@@ -80,6 +74,8 @@ public class LibrarianMenu {
             }
         } catch (Exception e) {
             System.err.println(e);
+        } finally {
+        	close();
         }
         return student;
     }
@@ -108,6 +104,7 @@ public class LibrarianMenu {
 			        prepStatement.setString(1, "%" + entry + "%");
 			        resultSet = prepStatement.executeQuery();
 		        }
+		        
 		        else if (choice == 2){
 		            System.out.print("Enter the title: ");
 		            entry = scan.nextLine();
@@ -115,6 +112,7 @@ public class LibrarianMenu {
 			        prepStatement.setString(1, "%" + entry + "%");
 			        resultSet = prepStatement.executeQuery();
 		        }
+		        
 		        else if (choice == 3){
 		            System.out.print("Enter the author: ");
 		            entry = scan.nextLine();
@@ -122,6 +120,7 @@ public class LibrarianMenu {
 			        prepStatement.setString(1, "%" + entry + "%");
 			        resultSet = prepStatement.executeQuery();
 		        }
+		        
 		        else if (choice == 4){
 		            System.out.print("Enter the genre: ");
 		            entry = scan.nextLine();
@@ -129,23 +128,23 @@ public class LibrarianMenu {
 			        prepStatement.setString(1, "%" + entry + "%");
 			        resultSet = prepStatement.executeQuery();
 		        }
+		        
 		        else if (choice == 5) {
 		        	System.out.println("Continuing without search.");
 		        	break;
 		        }
+		        
 		        else if (choice == 6){
 		            System.out.println("Canceling search.");
 		            choice = -1;
 		            continue;
 		        }
 
-		        //prints result set if not empty
 		        if (resultSet.next() == false){
 		            System.out.println("The search returned empty, try again.");
 		            continue;
 		        }
 
-		        //move pointer back to where it was before printing
 	            resultSet.previous();
 	            DBTablePrinter.printResultSet(resultSet);
 

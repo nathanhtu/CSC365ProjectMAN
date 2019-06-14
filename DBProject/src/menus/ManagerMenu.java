@@ -48,13 +48,13 @@ public class ManagerMenu {
 	            }
 	            //Checked out books
 	            else if (operation == 2) {
-	                prepStatement = connect.prepareStatement("SELECT checkoutID, serial as book, dueDate FROM Checkout WHERE checkinDate IS NULL");
+	                prepStatement = connect.prepareStatement("SELECT checkoutID, studentID, serial as book, dueDate FROM Checkout WHERE checkinDate IS NULL");
 	                resultSet = prepStatement.executeQuery();
 	                DBTablePrinter.printResultSet(resultSet);
 	                System.out.println("Displaying all checked out books.");
 	            }
 	            else if (operation == 3) {
-	                prepStatement = connect.prepareStatement("SELECT checkoutID, serial as book, dueDate FROM Checkout WHERE CURDATE() > dueDate AND checkinDate IS NULL");
+	                prepStatement = connect.prepareStatement("SELECT checkoutID, studentID, serial as book, dueDate FROM Checkout WHERE CURDATE() > dueDate AND checkinDate IS NULL");
 	                resultSet = prepStatement.executeQuery();
 	                DBTablePrinter.printResultSet(resultSet);
 	                System.out.println("Displaying all overdue books.");
@@ -65,7 +65,6 @@ public class ManagerMenu {
 	                break;
 	            }
 	        }
-	        scan.close();
 	        prepStatement.close();
 	        resultSet.close();
         } catch (Exception e) {
@@ -175,10 +174,6 @@ public class ManagerMenu {
     		"ON c.serial = DECE.serial\n" + 
     		"ORDER BY b.title";
 		return longQuery;
-    }
-
-    public static void checkedOut() {
-
     }
 
     public static void showManagerOptions() {
